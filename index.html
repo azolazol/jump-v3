@@ -19,12 +19,10 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// 이미지 안전장치 추가
 const playerImg = new Image();
 playerImg.src = 'player.png'; 
 let imageLoaded = false;
 
-// 이미지가 성공적으로 불러와졌을 때만 true로 변경
 playerImg.onload = () => {
     imageLoaded = true;
 };
@@ -40,10 +38,8 @@ const player = {
     
     draw() {
         if (imageLoaded) {
-            // 이미지가 있으면 캐릭터 출력
             ctx.drawImage(playerImg, this.x, this.y, this.w, this.h);
         } else {
-            // 이미지를 못 찾으면 임시로 빨간 네모 출력
             ctx.fillStyle = '#ff4757';
             ctx.fillRect(this.x, this.y, this.w, this.h);
         }
@@ -56,6 +52,14 @@ const player = {
             this.y = canvas.height - this.h;
             this.vy = 0;
             this.jumpCount = 0; 
+        }
+    },
+    
+    // 🔥 실수로 빠져있던 점프 로직을 다시 추가했습니다!
+    jump() {
+        if (this.jumpCount < this.maxJumps) {
+            this.vy = this.jumpForce;
+            this.jumpCount++;
         }
     }
 };
@@ -141,7 +145,6 @@ function animate() {
     animationId = requestAnimationFrame(animate);
 }
 
-// 이미지 확인을 기다리지 않고 즉시 게임 실행
 animate();
 </script>
 </body>
