@@ -13,14 +13,14 @@
             align-items: center;
             height: 100vh;
             background-color: #f1f2f6;
-            overflow: hidden; /* 모바일에서 스크롤 방지 */
-            touch-action: none; /* 모바일 기본 터치 액션 방지 */
+            overflow: hidden;
+            touch-action: none;
         }
         canvas {
             background-color: #ffffff;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             border-radius: 8px;
-            max-width: 100%; /* 모바일 화면 크기에 맞추기 */
+            max-width: 100%;
             height: auto;
         }
         p {
@@ -35,11 +35,15 @@
 <body>
 
 <canvas id="gameCanvas" width="800" height="400"></canvas>
-<p>스페이스바, 마우스 클릭 또는 화면을 터치하여 점프하세요! (최대 2단 점프)</p>
+<p>스페이스바, 마우스 클릭 또는 화면을 터치하여 점프하세요!</p>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// === 🌟 캐릭터 이미지 불러오기 ===
+const playerImg = new Image();
+playerImg.src = 'player.png'; // 깃허브에 올린 이미지 이름과 똑같아야 합니다!
 
 let animationId;
 let frames = 0;
@@ -51,8 +55,8 @@ let gameSpeed = 6;
 const player = {
     x: 50,
     y: 300,
-    w: 40,
-    h: 40,
+    w: 55, // 캐릭터 가로 크기 (비율에 맞춰 조절)
+    h: 70, // 캐릭터 세로 크기
     vy: 0,
     gravity: 0.6,
     jumpForce: -11,
@@ -60,8 +64,8 @@ const player = {
     maxJumps: 2, 
     
     draw() {
-        ctx.fillStyle = '#ff4757'; 
-        ctx.fillRect(this.x, this.y, this.w, this.h);
+        // 빨간 네모 대신 이미지를 그려줍니다.
+        ctx.drawImage(playerImg, this.x, this.y, this.w, this.h);
     },
     
     update() {
@@ -73,17 +77,10 @@ const player = {
             this.vy = 0;
             this.jumpCount = 0; 
         }
-    },
-    
-    jump() {
-        if (this.jumpCount < this.maxJumps) {
-            this.vy = this.jumpForce;
-            this.jumpCount++;
-        }
     }
 };
 
-// 장애물 배열 및 클래스
+// 장애물 배열 및 클래스 (초록색 네모)
 const obstacles = [];
 class Obstacle {
     constructor() {
@@ -113,11 +110,12 @@ function handleObstacles() {
         obs.update();
         obs.draw();
         
+        // 충돌 범위 (캐릭터 크기가 달라졌으므로 조금 더 정교하게 판정)
         if (
-            player.x < obs.x + obs.w &&
-            player.x + player.w > obs.x &&
-            player.y < obs.y + obs.h &&
-            player.y + player.h > obs.y
+            player.x < obs.x + obs.w - 10 &&
+            player.x + player.w - 10 > obs.x &&
+            player.y < obs.y + obs.h - 10 &&
+            player.y + player.h - 10 > obs.y
         ) {
             gameOver = true;
         }
@@ -130,18 +128,12 @@ function handleObstacles() {
     }
 }
 
-// === 조작 관련 코드 추가 및 변경 ===
-
-// 1. 공통 점프 실행 함수
+// 조작 관련
 function handleJump() {
-    if (gameOver) {
-        restartGame();
-    } else {
-        player.jump();
-    }
+    if (gameOver) restartGame();
+    else player.jump();
 }
 
-// 2. 키보드 스페이스바 이벤트
 let spacePressed = false;
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
@@ -153,23 +145,13 @@ window.addEventListener('keydown', (e) => {
     }
 });
 window.addEventListener('keyup', (e) => {
-    if (e.code === 'Space') {
-        spacePressed = false;
-    }
+    if (e.code === 'Space') spacePressed = false;
 });
-
-// 3. 모바일 터치 이벤트 추가
 canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // 모바일 화면 더블탭 확대 등 방지
+    e.preventDefault();
     handleJump();
 }, { passive: false });
-
-// 4. 마우스 클릭 이벤트 추가 (PC 마우스 지원)
-canvas.addEventListener('mousedown', (e) => {
-    handleJump();
-});
-
-// ==================================
+canvas.addEventListener('mousedown', () => handleJump());
 
 function restartGame() {
     gameOver = false;
@@ -207,7 +189,10 @@ function animate() {
     animationId = requestAnimationFrame(animate);
 }
 
-animate();
+// 이미지 로딩이 완료되면 게임 시작
+playerImg.onload = () => {
+    animate();
+};
 </script>
 </body>
 </html>
