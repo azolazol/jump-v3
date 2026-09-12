@@ -5,31 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>2단 점프 게임</title>
     <style>
-        body {
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f1f2f6;
-            overflow: hidden;
-            touch-action: none;
-        }
-        canvas {
-            background-color: #ffffff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            max-width: 100%;
-            height: auto;
-        }
-        p {
-            font-family: 'Malgun Gothic', sans-serif;
-            color: #2f3542;
-            margin-top: 20px;
-            text-align: center;
-            padding: 0 10px;
-        }
+        body { margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background-color: #f1f2f6; overflow: hidden; touch-action: none; }
+        canvas { background-color: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; max-width: 100%; height: auto; }
+        p { font-family: 'Malgun Gothic', sans-serif; color: #2f3542; margin-top: 20px; text-align: center; padding: 0 10px; }
     </style>
 </head>
 <body>
@@ -41,9 +19,15 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// === 🌟 캐릭터 이미지 불러오기 ===
+// 이미지 안전장치 추가
 const playerImg = new Image();
-playerImg.src = 'player.png'; // 깃허브에 올린 이미지 이름과 똑같아야 합니다!
+playerImg.src = 'player.png'; 
+let imageLoaded = false;
+
+// 이미지가 성공적으로 불러와졌을 때만 true로 변경
+playerImg.onload = () => {
+    imageLoaded = true;
+};
 
 let animationId;
 let frames = 0;
@@ -51,27 +35,23 @@ let score = 0;
 let gameOver = false;
 let gameSpeed = 6;
 
-// 플레이어 객체
 const player = {
-    x: 50,
-    y: 300,
-    w: 55, // 캐릭터 가로 크기 (비율에 맞춰 조절)
-    h: 70, // 캐릭터 세로 크기
-    vy: 0,
-    gravity: 0.6,
-    jumpForce: -11,
-    jumpCount: 0,
-    maxJumps: 2, 
+    x: 50, y: 300, w: 55, h: 70, vy: 0, gravity: 0.6, jumpForce: -11, jumpCount: 0, maxJumps: 2, 
     
     draw() {
-        // 빨간 네모 대신 이미지를 그려줍니다.
-        ctx.drawImage(playerImg, this.x, this.y, this.w, this.h);
+        if (imageLoaded) {
+            // 이미지가 있으면 캐릭터 출력
+            ctx.drawImage(playerImg, this.x, this.y, this.w, this.h);
+        } else {
+            // 이미지를 못 찾으면 임시로 빨간 네모 출력
+            ctx.fillStyle = '#ff4757';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+        }
     },
     
     update() {
         this.vy += this.gravity;
         this.y += this.vy;
-        
         if (this.y + this.h >= canvas.height) {
             this.y = canvas.height - this.h;
             this.vy = 0;
@@ -80,7 +60,6 @@ const player = {
     }
 };
 
-// 장애물 배열 및 클래스 (초록색 네모)
 const obstacles = [];
 class Obstacle {
     constructor() {
@@ -89,46 +68,33 @@ class Obstacle {
         this.x = canvas.width;
         this.y = canvas.height - this.h;
     }
-    
     draw() {
         ctx.fillStyle = '#2ed573'; 
         ctx.fillRect(this.x, this.y, this.w, this.h);
     }
-    
     update() {
         this.x -= gameSpeed;
     }
 }
 
 function handleObstacles() {
-    if (frames % 90 === 0) {
-        obstacles.push(new Obstacle());
-    }
+    if (frames % 90 === 0) obstacles.push(new Obstacle());
     
     for (let i = 0; i < obstacles.length; i++) {
         let obs = obstacles[i];
         obs.update();
         obs.draw();
         
-        // 충돌 범위 (캐릭터 크기가 달라졌으므로 조금 더 정교하게 판정)
-        if (
-            player.x < obs.x + obs.w - 10 &&
-            player.x + player.w - 10 > obs.x &&
-            player.y < obs.y + obs.h - 10 &&
-            player.y + player.h - 10 > obs.y
-        ) {
+        if (player.x < obs.x + obs.w - 10 && player.x + player.w - 10 > obs.x && player.y < obs.y + obs.h - 10 && player.y + player.h - 10 > obs.y) {
             gameOver = true;
         }
         
         if (obs.x + obs.w < 0) {
-            obstacles.splice(i, 1);
-            score++;
-            i--; 
+            obstacles.splice(i, 1); score++; i--; 
         }
     }
 }
 
-// 조작 관련
 function handleJump() {
     if (gameOver) restartGame();
     else player.jump();
@@ -138,61 +104,45 @@ let spacePressed = false;
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
         e.preventDefault(); 
-        if (!spacePressed) {
-            handleJump();
-            spacePressed = true;
-        }
+        if (!spacePressed) { handleJump(); spacePressed = true; }
     }
 });
 window.addEventListener('keyup', (e) => {
     if (e.code === 'Space') spacePressed = false;
 });
 canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    handleJump();
+    e.preventDefault(); handleJump();
 }, { passive: false });
 canvas.addEventListener('mousedown', () => handleJump());
 
 function restartGame() {
-    gameOver = false;
-    score = 0;
-    frames = 0;
-    obstacles.length = 0;
-    player.y = canvas.height - player.h;
-    player.vy = 0;
+    gameOver = false; score = 0; frames = 0; obstacles.length = 0;
+    player.y = canvas.height - player.h; player.vy = 0;
     animate();
 }
 
 function animate() {
     if (gameOver) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'white';
-        ctx.font = '30px Arial';
-        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white'; ctx.font = '30px Arial'; ctx.textAlign = 'center';
         ctx.fillText('게임 오버! 터치하여 재시작', canvas.width / 2, canvas.height / 2);
         return;
     }
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     player.update();
     player.draw();
     handleObstacles();
     
-    ctx.fillStyle = '#2f3542';
-    ctx.font = '24px Arial';
-    ctx.textAlign = 'left';
+    ctx.fillStyle = '#2f3542'; ctx.font = '24px Arial'; ctx.textAlign = 'left';
     ctx.fillText(`Score: ${score}`, 20, 40);
     
     frames++;
     animationId = requestAnimationFrame(animate);
 }
 
-// 이미지 로딩이 완료되면 게임 시작
-playerImg.onload = () => {
-    animate();
-};
+// 이미지 확인을 기다리지 않고 즉시 게임 실행
+animate();
 </script>
 </body>
 </html>
