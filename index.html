@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>2단 점프 게임</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f1f2f6;
+        }
+        canvas {
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        p {
+            font-family: 'Malgun Gothic', sans-serif;
+            color: #2f3542;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+<p>스페이스바를 눌러 점프하세요! (최대 2단 점프 가능)</p>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let animationId;
+let frames = 0;
+let score = 0;
+let gameOver = false;
+let gameSpeed = 6;
+
+// 플레이어 객체
+const player = {
+    x: 50,
+    y: 300,
+    w: 40,
+    h: 40,
+    vy: 0,
+    gravity: 0.6,
+    jumpForce: -11,
+    jumpCount: 0,
+    maxJumps: 2, // 2단 점프 허용
+    
+    draw() {
+        ctx.fillStyle = '#ff4757'; // 캐릭터 색상 (빨강)
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+    },
+    
+    update() {
+        this.vy += this.gravity;
+        this.y += this.vy;
+        
+        // 바닥 충돌 처리
+        if (this.y + this.h >= canvas.height) {
+            this.y = canvas.height - this.h;
+            this.vy = 0;
+            this.jumpCount = 0; // 바닥에 닿으면 점프 횟수 초기화
+        }
+    },
+    
+    jump() {
+        if (this.jumpCount < this.maxJumps) {
+            this.vy = this.jumpForce;
+            this.jumpCount++;
+        }
+    }
+};
+
+// 장애물 배열 및 클래스
+const obstacles = [];
+class Obstacle {
+    constructor() {
+        this.w = 30 + Math.random() * 20;
+        this.h = 40 + Math.random() * 40;
+        this.x = canvas.width;
+        this.y = canvas.height - this.h;
+    }
+    
+    draw() {
+        ctx.fillStyle = '#2ed573'; // 장애물 색상 (초록)
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+    
+    update() {
+        this.x -= gameSpeed;
+    }
+}
+
+function handleObstacles() {
+    // 일정 프레임마다 장애물 생성
+    if (frames % 90 === 0) {
+        obstacles.push(new Obstacle());
+    }
+    
+    for (let i = 0; i < obstacles.length; i++) {
+        let obs = obstacles[i];
+        obs.update();
+        obs.draw();
+        
+        // 충돌 감지 로직
+        if (
+            player.x < obs.x + obs.w &&
+            player.x + player.w > obs.x &&
+            player.y < obs.y + obs.h &&
+            player.y + player.h > obs.y
+        ) {
+            gameOver = true;
+        }
+        
+        // 화면 밖으로 나간 장애물 제거 및 점수 획득
+        if (obs.x + obs.w < 0) {
+            obstacles.splice(i, 1);
+            score++;
+            i--; // 배열이 당겨지므로 인덱스 조정
+        }
+    }
+}
+
+// 스페이스바 꾹 누름 방지용 플래그
+let spacePressed = false;
+
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        e.preventDefault(); // 스페이스바로 화면 스크롤되는 현상 방지
+        if (!spacePressed) {
+            if (gameOver) restartGame();
+            else player.jump();
+            spacePressed = true;
+        }
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+        spacePressed = false;
+    }
+});
+
+function restartGame() {
+    gameOver = false;
+    score = 0;
+    frames = 0;
+    obstacles.length = 0;
+    player.y = canvas.height - player.h;
+    player.vy = 0;
+    animate();
+}
+
+// 메인 게임 루프
+function animate() {
+    if (gameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = '30px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('게임 오버! 스페이스바를 눌러 재시작', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    player.update();
+    player.draw();
+    handleObstacles();
+    
+    // 점수 표시
+    ctx.fillStyle = '#2f3542';
+    ctx.font = '24px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Score: ${score}`, 20, 40);
+    
+    frames++;
+    animationId = requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>
