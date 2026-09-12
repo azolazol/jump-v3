@@ -41,7 +41,6 @@
     
     <div id="gameOverUI">
         <h2>시련에 굴복했습니다!</h2>
-        <!-- 점수와 골드를 함께 보여줍니다 -->
         <div id="finalScore">점수: 0 / 골드: 0G</div>
         
         <div class="input-group">
@@ -78,7 +77,7 @@ playerImg.onload = () => { imageLoaded = true; };
 let animationId;
 let frames = 0;
 let score = 0;
-let gold = 0; // 🔥 골드 변수 추가
+let gold = 0; 
 let gameOver = false;
 let gameSpeed = 6;
 
@@ -102,22 +101,13 @@ const player = {
     }
 };
 
-// ❌ 피해야 할 장애물 리스트
+// ❌ 쉼표를 완벽하게 수정한 피해야 할 장애물 리스트
 const wordList = [
-           // 기존 단어
-    '학원', '숙제', '학교', '잠', '놀기', '잔소리', '수행평가', '과학 숙제', '양치하기', '방 정리', '스마트폰', '책상정리' 
-    
-    // 추가하신 단어
-    '일어나기', '밥먹기', '숙제하기', '학교가기', '학원가기', '책읽어', '가방챙기기', '운동하기'
-    
-    // 공부 & 과제
+    '학원', '숙제', '학교', '잠', '놀기', '잔소리', '수행평가', '과학 숙제', '양치하기', '방 정리', '스마트폰', '책상정리',
+    '일어나기', '밥먹기', '숙제하기', '학교가기', '학원가기', '책읽어', '가방챙기기', '운동하기',
     '수학 문제', '영어 단어', '오답 노트', '일기 쓰기',
-    
-    // 귀찮은 일상
-    '심부름', '일찍 자기', '씻고 자라', '채소 먹기', '제때 먹기', '목욕하기', '손씻기', '뒹구르기', '화내기', '승질내기', '화내기' 
-    
-    // 공포의 잔소리
-    '폰 압수', '게임 꺼라', 'TV 그만', '자세 똑바로', '유튭끄기',     
+    '심부름', '일찍 자기', '씻고 자라', '채소 먹기', '제때 먹기', '목욕하기', '손씻기', '뒹구르기', '화내기', '승질내기',
+    '폰 압수', '게임 꺼라', 'TV 그만', '자세 똑바로', '유튭끄기'
 ];
 
 // 🎁 획득해야 할 보상 리스트
@@ -128,7 +118,7 @@ const rewardList = [
 ];
 
 const obstacles = [];
-const rewards = []; // 🔥 보상 배열 추가
+const rewards = []; 
 
 class Obstacle {
     constructor() {
@@ -137,19 +127,18 @@ class Obstacle {
         this.w = ctx.measureText(this.text).width;
         this.h = 30; 
         this.x = canvas.width;
-        this.y = canvas.height - this.h - (Math.random() * 20); // 바닥 근처
+        this.y = canvas.height - this.h - (Math.random() * 20); 
         this.floatOffset = Math.random() * 100; 
     }
     draw() {
         const floatY = Math.sin((frames + this.floatOffset) * 0.1) * 5; 
-        ctx.fillStyle = '#e84118'; // 빨간색 계열
+        ctx.fillStyle = '#e84118'; 
         ctx.font = 'bold 26px "Malgun Gothic"'; ctx.textAlign = 'left';
         ctx.fillText(this.text, this.x, this.y + 24 + floatY); 
     }
     update() { this.x -= gameSpeed; }
 }
 
-// 🔥 보상 클래스 추가
 class Reward {
     constructor() {
         this.text = rewardList[Math.floor(Math.random() * rewardList.length)];
@@ -157,19 +146,17 @@ class Reward {
         this.w = ctx.measureText(this.text).width;
         this.h = 30; 
         this.x = canvas.width;
-        // 보상은 캐릭터가 점프해야 닿을 수 있게 공중에 높게 배치 (바닥에서 130~180px 위)
         this.y = canvas.height - 130 - (Math.random() * 50); 
         this.floatOffset = Math.random() * 100; 
     }
     draw() {
-        const floatY = Math.sin((frames + this.floatOffset) * 0.15) * 8; // 조금 더 경쾌하게 흔들림
-        ctx.fillStyle = '#f39c12'; // 황금색/오렌지색 계열로 보상임을 강조
+        const floatY = Math.sin((frames + this.floatOffset) * 0.15) * 8; 
+        ctx.fillStyle = '#f39c12'; 
         ctx.font = 'bold 22px "Malgun Gothic"'; ctx.textAlign = 'left';
-        // 반짝이는 효과를 위해 그림자 추가
         ctx.shadowColor = 'rgba(241, 196, 15, 0.8)';
         ctx.shadowBlur = 10;
         ctx.fillText("✨" + this.text, this.x, this.y + 24 + floatY); 
-        ctx.shadowBlur = 0; // 다른 글자에 영향 안 주게 리셋
+        ctx.shadowBlur = 0; 
     }
     update() { this.x -= gameSpeed; }
 }
@@ -188,23 +175,18 @@ function handleObstacles() {
     }
 }
 
-// 🔥 보상 생성 및 충돌(획득) 처리
 function handleRewards() {
-    // 장애물과 겹치지 않게 프레임 간격을 조정해서 생성 (150 프레임마다)
     if (frames % 150 === 0) rewards.push(new Reward());
     
     for (let i = 0; i < rewards.length; i++) {
         let rw = rewards[i];
         rw.update(); rw.draw();
         
-        // 보상 획득 판정
         if (player.x < rw.x + rw.w + 20 && player.x + player.w > rw.x && player.y < rw.y + rw.h && player.y + player.h > rw.y) {
-            // 보상을 먹으면 배열에서 삭제하고 골드 100 증가
             rewards.splice(i, 1);
             gold += 100; 
             i--; 
         } else if (rw.x + rw.w < 0) {
-            // 화면 밖으로 나가면 그냥 삭제
             rewards.splice(i, 1); i--; 
         }
     }
@@ -216,7 +198,6 @@ function loadRankings() {
     if (ranks.length === 0) {
         rankingList.innerHTML = '<li>아직 등록된 랭킹이 없습니다!</li>'; return;
     }
-    // 랭킹에는 점수와 골드를 합산하거나, 함께 보여줍니다. (여기서는 합산 랭킹으로 표시)
     ranks.slice(0, 5).forEach((rank, index) => {
         rankingList.innerHTML += `<li><span>${index + 1}. ${rank.name}</span> <span>${rank.score}점 (${rank.gold}G)</span></li>`;
     });
@@ -227,10 +208,7 @@ function submitRanking() {
     if (!name) name = '무명 극복자'; 
     
     let ranks = JSON.parse(localStorage.getItem('jumpGameRanksV2')) || [];
-    // 점수와 골드를 모두 저장
     ranks.push({ name: name, score: score, gold: gold, total: score * 10 + gold }); 
-    
-    // 랭킹 기준: 획득한 골드와 점수를 환산한 총점 (total) 순
     ranks.sort((a, b) => b.total - a.total); 
     
     localStorage.setItem('jumpGameRanksV2', JSON.stringify(ranks));
@@ -267,7 +245,7 @@ function showGameOverUI() {
 function restartGame() {
     ui.style.display = 'none';
     gameOver = false; score = 0; gold = 0; frames = 0; 
-    obstacles.length = 0; rewards.length = 0; // 보상 초기화
+    obstacles.length = 0; rewards.length = 0; 
     player.y = canvas.height - player.h; player.vy = 0;
     canvas.focus(); 
     animate();
@@ -280,9 +258,8 @@ function animate() {
     player.update();
     player.draw();
     handleObstacles();
-    handleRewards(); // 🔥 보상 함수 호출
+    handleRewards(); 
     
-    // 좌측 상단에 점수와 골드 표시
     ctx.fillStyle = '#2f3542'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'left';
     ctx.fillText(`극복 점수: ${score}`, 20, 35);
     ctx.fillStyle = '#f39c12';
