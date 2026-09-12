@@ -22,9 +22,8 @@
         
         .btn { padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; margin: 5px; }
         .btn-submit { background-color: #2ed573; color: white; }
-        .btn-submit:active { background-color: #26ae60; }
+        .btn-submit:disabled { background-color: #a4b0be; cursor: not-allowed; }
         .btn-restart { background-color: #747d8c; color: white; }
-        .btn-restart:active { background-color: #57606f; }
         
         #rankingBoard { margin-top: 20px; background: #f8a5c2; padding: 10px 20px; border-radius: 10px; min-width: 250px; color: #fff;}
         #rankingBoard h3 { margin: 0 0 10px 0; font-size: 18px; }
@@ -52,7 +51,7 @@
         </div>
         
         <div id="rankingBoard">
-            <h3>🏆 명예의 전당 (Top 5) 🏆</h3>
+            <h3>🏆 글로벌 명예의 전당 (Top 5) 🏆</h3>
             <ul id="rankingList"></ul>
         </div>
     </div>
@@ -61,6 +60,12 @@
 <p class="guide">스페이스바, 화살표(↑), 마우스, 터치로 점프! 공중의 보상을 획득하세요!</p>
 
 <script>
+// =========================================================================
+// 🔥 [매우 중요] 아래 따옴표 안에 아까 복사하신 구글 웹 앱 URL을 붙여넣으세요!!
+// =========================================================================
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLl0lOmCOm0sGtoPPNGOJe3eSaREiaeJaO39G_nP_IS9jBvW1C8i4shjkeXR1e2oPl/exec';
+
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const ui = document.getElementById('gameOverUI');
@@ -101,7 +106,6 @@ const player = {
     }
 };
 
-// ❌ 쉼표를 완벽하게 수정한 피해야 할 장애물 리스트
 const wordList = [
     '학원', '숙제', '학교', '잠', '놀기', '잔소리', '수행평가', '과학 숙제', '양치하기', '방 정리', '스마트폰', '책상정리',
     '일어나기', '밥먹기', '숙제하기', '학교가기', '학원가기', '책읽어', '가방챙기기', '운동하기',
@@ -110,7 +114,6 @@ const wordList = [
     '폰 압수', '게임 꺼라', 'TV 그만', '자세 똑바로', '유튭끄기'
 ];
 
-// 🎁 획득해야 할 보상 리스트
 const rewardList = [
     '폭풍 칭찬', '수학 1up', '과학 1up', '국어 1up', '자존감 1up', '체력 1up', 
     '인내심 1up', '게임시간 +30분', '용돈 보너스', '새 자전거 획득!', 
@@ -163,7 +166,6 @@ class Reward {
 
 function handleObstacles() {
     if (frames % 100 === 0) obstacles.push(new Obstacle());
-    
     for (let i = 0; i < obstacles.length; i++) {
         let obs = obstacles[i];
         obs.update(); obs.draw();
@@ -177,7 +179,6 @@ function handleObstacles() {
 
 function handleRewards() {
     if (frames % 150 === 0) rewards.push(new Reward());
-    
     for (let i = 0; i < rewards.length; i++) {
         let rw = rewards[i];
         rw.update(); rw.draw();
@@ -192,28 +193,49 @@ function handleRewards() {
     }
 }
 
-function loadRankings() {
-    const ranks = JSON.parse(localStorage.getItem('jumpGameRanksV2')) || [];
-    rankingList.innerHTML = '';
-    if (ranks.length === 0) {
-        rankingList.innerHTML = '<li>아직 등록된 랭킹이 없습니다!</li>'; return;
+// 🌐 글로벌 랭킹 불러오기
+async function loadRankings() {
+    rankingList.innerHTML = '<li>서버에서 랭킹을 불러오는 중... ⏳</li>';
+    try {
+        const response = await fetch(SCRIPT_URL + '?action=get');
+        const ranks = await response.json();
+        
+        rankingList.innerHTML = '';
+        if (ranks.length === 0) {
+            rankingList.innerHTML = '<li>아직 등록된 랭킹이 없습니다! 첫 번째로 도전하세요!</li>';
+            return;
+        }
+        ranks.forEach((rank, index) => {
+            rankingList.innerHTML += `<li><span>${index + 1}. ${rank.name}</span> <span>${rank.score}점 (${rank.gold}G)</span></li>`;
+        });
+    } catch (error) {
+        rankingList.innerHTML = '<li>랭킹 서버와 연결할 수 없습니다. 😭</li>';
     }
-    ranks.slice(0, 5).forEach((rank, index) => {
-        rankingList.innerHTML += `<li><span>${index + 1}. ${rank.name}</span> <span>${rank.score}점 (${rank.gold}G)</span></li>`;
-    });
 }
 
-function submitRanking() {
+// 🌐 글로벌 랭킹 등록하기
+async function submitRanking() {
     let name = nicknameInput.value.trim();
     if (!name) name = '무명 극복자'; 
     
-    let ranks = JSON.parse(localStorage.getItem('jumpGameRanksV2')) || [];
-    ranks.push({ name: name, score: score, gold: gold, total: score * 10 + gold }); 
-    ranks.sort((a, b) => b.total - a.total); 
+    const totalScore = score * 10 + gold; 
+    const submitBtn = document.querySelector('.btn-submit');
     
-    localStorage.setItem('jumpGameRanksV2', JSON.stringify(ranks));
-    nicknameInput.value = ''; 
-    restartGame(); 
+    submitBtn.innerText = '등록 중...';
+    submitBtn.disabled = true; // 중복 클릭 방지
+    
+    try {
+        const url = `${SCRIPT_URL}?action=add&name=${encodeURIComponent(name)}&score=${score}&gold=${gold}&total=${totalScore}`;
+        await fetch(url);
+        
+        nicknameInput.value = ''; 
+        restartGame(); 
+    } catch (error) {
+        alert('랭킹 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+        submitBtn.innerText = '랭킹 등록';
+        submitBtn.disabled = false;
+    }
 }
 
 function handleJump() {
@@ -239,7 +261,7 @@ canvas.addEventListener('mousedown', () => { if (!gameOver) handleJump(); });
 function showGameOverUI() {
     ui.style.display = 'flex';
     scoreText.innerText = `극복 점수: ${score}점 / 획득 골드: ${gold}G`;
-    loadRankings();
+    loadRankings(); // 게임 오버 시 실시간 글로벌 랭킹 호출!
 }
 
 function restartGame() {
